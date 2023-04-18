@@ -1,7 +1,8 @@
 #include <SFML/Graphics.hpp>
-#include <iostream>
 #include "map.h" //подключили код с картой
 #include "view.h"//подключили код с видом камеры
+#include <iostream>
+#include <sstream>
 
 using namespace sf;
 
@@ -10,13 +11,14 @@ class Player {
 private: float x, y ;
 public:
     float w, h, dx, dy, speed ;
-    int dir;
+    int dir, playerScore;//новая переменная, хранящая очки игрока
     String File;
     Image image;
     Texture texture;
     Sprite sprite;
     Player(String F, float X, float Y, float W, float H){
-        dx=0; dy=0; speed=0; dir =0;
+        dir = 0; playerScore = 0;
+        dx=0;dy=0;speed=0;
         File = F;
         w = W; h = H;
         image.loadFromFile("../assets/images/" + File);
@@ -34,50 +36,16 @@ public:
             case 1: dx = -speed; dy = 0; break;
             case 2: dx = 0; dy = speed; break;
             case 3: dx = 0; dy = -speed; break;
+
         }
 
         x += dx*time;
         y += dy*time;
 
         speed = 0;
-        sprite.setPosition(x,y);
-        interactionWithMap();//вызываем функцию, отвечающую за взаимодействие с картой
+        sprite.setPosition(x, y);
+        interactionWithMap();
     }
-
-
-    void interactionWithMap()//ф-ция взаимодействия с картой
-    {
-
-        for (int i = y / 32; i < (y + h) / 32; i++)//проходимся по тайликам, контактирующим с игроком,, то есть по всем квадратикам размера 32*32, которые мы окрашивали в 9 уроке. про условия читайте ниже.
-            for (int j = x / 32; j<(x + w) / 32; j++)//икс делим на 32, тем самым получаем левый квадратик, с которым персонаж соприкасается. (он ведь больше размера 32*32, поэтому может одновременно стоять на нескольких квадратах). А j<(x + w) / 32 - условие ограничения координат по иксу. то есть координата самого правого квадрата, который соприкасается с персонажем. таким образом идем в цикле слева направо по иксу, проходя по от левого квадрата (соприкасающегося с героем), до правого квадрата (соприкасающегося с героем)
-            {
-                if (TileMap[i][j] == '0')//если наш квадратик соответствует символу 0 (стена), то проверяем "направление скорости" персонажа:
-                {
-                    if (dy>0)//если мы шли вниз,
-                    {
-                        y = i * 32 - h;//то стопорим координату игрек персонажа. сначала получаем координату нашего квадратика на карте(стены) и затем вычитаем из высоты спрайта персонажа.
-                    }
-                    if (dy<0)
-                    {
-                        y = i * 32 + 32;//аналогично с ходьбой вверх. dy<0, значит мы идем вверх (вспоминаем координаты паинта)
-                    }
-                    if (dx>0)
-                    {
-                        x = j * 32 - w;//если идем вправо, то координата Х равна стена (символ 0) минус ширина персонажа
-                    }
-                    if (dx < 0)
-                    {
-                        x = j * 32 + 32;//аналогично идем влево
-                    }
-                }
-
-                if (TileMap[i][j] == 's') { //если символ равен 's' (камень)
-                    x = 300; y = 300;//какое то действие... например телепортация героя
-                    TileMap[i][j] = ' ';//убираем камень, типа взяли бонус. можем и не убирать, кстати.
-                }
-            }
-    }
-
 
     float getplayercoordinateX(){
         return x;
@@ -86,16 +54,54 @@ public:
         return y;
     }
 
+
+
+
+    void interactionWithMap()
+    {
+
+        for (int i = y / 32; i < (y + h) / 32; i++)
+            for (int j = x / 32; j<(x + w) / 32; j++)
+            {
+                if (TileMap[i][j] == '0')
+                {
+                    if (dy>0)
+                    {
+                        y = i * 32 - h;
+                    }
+                    if (dy<0)
+                    {
+                        y = i * 32 + 32;
+                    }
+                    if (dx>0)
+                    {
+                        x = j * 32 - w;
+                    }
+                    if (dx < 0)
+                    {
+                        x = j * 32 + 32;
+                    }
+                }
+
+                if (TileMap[i][j] == 's') {
+                    playerScore++;//если взяли камень, переменная playerScore=playerScore+1;
+                    TileMap[i][j] = ' ';
+                }
+            }
+    }
+
 };
-
-
 
 int main()
 {
-    RenderWindow window(sf::VideoMode(640, 480), "Lesson 11. kychka-pc.ru");
+    RenderWindow window(VideoMode(640, 480), "Lesson 12. kychka-pc.ru");
+    view.reset(FloatRect(0, 0, 640, 480));
 
-
-    view.reset(sf::FloatRect(0, 0, 640, 480));
+    Font font;//шрифт
+    font.loadFromFile("../assets/fonts/CyrilicOld.ttf");//передаем нашему шрифту файл шрифта
+    Text text("", font, 20);//создаем объект текст. закидываем в объект текст строку, шрифт, размер шрифта(в пикселях);//сам объект текст (не строка)
+    text.setColor(Color::Red);//покрасили текст в красный. если убрать эту строку, то по умолчанию он белый
+    text.setStyle(Text::Bold);//жирный текст.
 
     Image map_image;
     map_image.loadFromFile("../assets/images/map.png");
@@ -125,10 +131,6 @@ int main()
                 window.close();
         }
 
-        float coordinatePlayerX, coordinatePlayerY = 0;
-        coordinatePlayerX = p.getplayercoordinateX();
-        coordinatePlayerY = p.getplayercoordinateY();
-
         ///////////////////////////////////////////Управление персонажем с анимацией////////////////////////////////////////////////////////////////////////
         if (Keyboard::isKeyPressed(Keyboard::Left)) {
             p.dir = 1; p.speed = 0.1;
@@ -148,7 +150,7 @@ int main()
             p.dir = 3; p.speed = 0.1;
             CurrentFrame += 0.005*time;
             if (CurrentFrame > 3) CurrentFrame -= 3;
-            p.sprite.setTextureRect(IntRect(96 * int(CurrentFrame), 288, 96, 96));
+            p.sprite.setTextureRect(IntRect(96 * int(CurrentFrame), 307, 96, 96));//
         }
 
         if (Keyboard::isKeyPressed(Keyboard::Down)) {
@@ -157,10 +159,10 @@ int main()
             if (CurrentFrame > 3) CurrentFrame -= 3;
             p.sprite.setTextureRect(IntRect(96 * int(CurrentFrame), 0, 96, 96));
         }
-        getplayercoordinateforview(coordinatePlayerX, coordinatePlayerY);
+
+
+        getplayercoordinateforview(p.getplayercoordinateX(), p.getplayercoordinateY());
         p.update(time);
-
-
 
         window.setView(view);
         window.clear();
@@ -177,7 +179,11 @@ int main()
 
                 window.draw(s_map);
             }
-
+        std::ostringstream playerScoreString;    // объявили переменную
+        playerScoreString << p.playerScore;		//занесли в нее число очков, то есть формируем строку
+        text.setString(L"Собрано камней:" + playerScoreString.str());//задаем строку тексту и вызываем сформированную выше строку методом .str()
+        text.setPosition(view.getCenter().x - 165, view.getCenter().y - 200);//задаем позицию текста, отступая от центра камеры
+        window.draw(text);//рисую этот текст
 
         window.draw(p.sprite);
         window.display();
