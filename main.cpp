@@ -108,7 +108,7 @@ public:
 
 int main()
 {
-    RenderWindow window(VideoMode(640, 480), "Lesson 14. kychka-pc.ru");
+    RenderWindow window(VideoMode(1366, 768), "Lesson 15. kychka-pc.ru");
     view.reset(FloatRect(0, 0, 640, 480));
 
     Font font;
@@ -211,8 +211,17 @@ int main()
                 if (currentFrame > 3) currentFrame -= 3;
                 p.sprite.setTextureRect(IntRect(96 * int(currentFrame), 0, 96, 96));
             }
-            getplayercoordinateforview(p.getplayercoordinateX(), p.getplayercoordinateY());
+            //getplayercoordinateforview(p.getplayercoordinateX(), p.getplayercoordinateY());
         }
+
+        sf::Vector2i localPosition = Mouse::getPosition(window);
+
+
+        if (localPosition.x < 3) { view.move(-0.2*time, 0); }//если пришли курсором в левый край экрана,то двигаем камеру влево
+		if (localPosition.x > window.getSize().x-3) { view.move(0.2*time, 0); }//правый край-вправо
+		if (localPosition.y > window.getSize().y-3) { view.move(0, 0.2*time); }//нижний край - вниз
+		if (localPosition.y < 3) {  view.move(0, -0.2*time); }//верхний край - вверх
+
         p.update(time);
 
         window.setView(view);
