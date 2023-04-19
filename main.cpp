@@ -1,9 +1,10 @@
 #include <SFML/Graphics.hpp>
-#include "map.h" //подключили код с картой
-#include "view.h"//подключили код с видом камеры
+#include "map.h"
+#include "view.h"
 #include <iostream>
 #include <sstream>
 #include "mission.h"
+#include <math.h>
 
 using namespace sf;
 
@@ -14,26 +15,28 @@ private: float w, h, dx, dy, x, y, speed;
          int dir, playerScore, health;
          bool life;
          */
+
 public:
     float w, h, dx, dy,x,y, speed;
     int dir, playerScore, health;
-    bool life;
+    bool life, isMove,isSelect;//добавили переменные состояния движения и выбора объекта
     String File;
     Image image;
     Texture texture;
     Sprite sprite;
-    Player(Sprite F, float X, float Y, float W, float H){
-        dir = 0; speed = 0; playerScore = 0; health = 100; dx=0;dy=0;
-        life = true;
-        //File = F;
+    Player(String F, float X, float Y, float W, float H){
+        dir = 0; speed = 0; playerScore = 0; health = 100; dx = 0; dy = 0;
+        life = true; isMove = false; isSelect = false;
+        File = F;
         w = W; h = H;
-        //image.loadFromFile("images/" + File);
-        image.createMaskFromColor(Color(41, 33, 59));
-        //texture.loadFromImage(image);
-        //sprite.setTexture(texture);
-        sprite = F;
+        image.loadFromFile("../assets/images/" + File);
+        image.createMaskFromColor(Color(0, 0, 255));
+        texture.loadFromImage(image);
+        sprite.setTexture(texture);
+
         x = X; y = Y;
         sprite.setTextureRect(IntRect(0, 0, w, h));
+        sprite.setOrigin(w / 2, h / 2);
     }
     void update(float time)
     {
@@ -47,9 +50,8 @@ public:
 
         x += dx*time;
         y += dy*time;
-        speed = 0;
+        if (!isMove) speed = 0;
         sprite.setPosition(x, y);
-        sprite.setOrigin(w / 2, h / 2);
         interactionWithMap();
         if (health <= 0){ life = false; }
 
@@ -77,7 +79,9 @@ public:
     }
 
 
+    void moveToCursor(Window window){
 
+    }
 
     void interactionWithMap()
     {
@@ -148,7 +152,7 @@ int main()
 {
 
 
-    RenderWindow window(VideoMode(640, 480), "Lesson 17. kychka-pc.ru");
+    RenderWindow window(VideoMode(640, 480), "Lesson 18. kychka-pc.ru");
     view.reset(FloatRect(0, 0, 640, 480));
 
     Font font;
@@ -176,13 +180,15 @@ int main()
 
     SpriteManager playerSprite("hero.png", "Hero");//это задел на следующие уроки,прошу не обращать внимания)
 
-    Player p(playerSprite.sprite, 250, 250, 96.0, 96.0);
+    Player p("heroForRotate.png", 250, 250, 136, 74);
 
     float currentFrame = 0;
     Clock clock;
-    bool isMove = false;//переменная для щелчка мыши по спрайту
-    float dX = 0;//корректировка движения по х
-    float dY = 0;//по у
+    float dX = 0;
+    float dY = 0;
+    int tempX = 0;//временная коорд Х.Снимаем ее после нажатия прав клав мыши
+    int tempY = 0;//коорд Y
+    float distance = 0;//это расстояние от объекта до тыка курсора
     while (window.isOpen())
     {
 
@@ -193,8 +199,7 @@ int main()
 
         Vector2i pixelPos = Mouse::getPosition(window);//забираем коорд курсора
         Vector2f pos = window.mapPixelToCoords(pixelPos);//переводим их в игровые (уходим от коорд окна)
-        std::cout << pixelPos.x << "\n";//смотрим на координату Х позиции курсора в консоли (она не будет больше ширины окна)
-        std::cout << pos.x << "\n";//смотрим на Х,которая преобразовалась в мировые координаты
+
 
         Event event;
         while (window.pollEvent(event))
@@ -203,25 +208,42 @@ int main()
                 window.close();
 
             if (event.type == Event::MouseButtonPressed)//если нажата клавиша мыши
-                if (event.key.code == Mouse::Left)//а именно левая
+                if (event.key.code == Mouse::Left){//а именно левая
                     if (p.sprite.getGlobalBounds().contains(pos.x, pos.y))//и при этом координата курсора попадает в спрайт
                     {
-                        std::cout << "isClicked!\n";//выводим в консоль сообщение об этом
-                        dX = pos.x - p.sprite.getPosition().x;//делаем разность между позицией курсора и спрайта.для корректировки нажатия
-                        dY = pos.y - p.sprite.getPosition().y;//тоже самое по игреку
-                        isMove = true;//можем двигать спрайт
+                        p.sprite.setColor(Color::Green);//красим спрайт в зеленый,тем самым говоря игроку,что он выбрал персонажа и может сделать ход
+                        p.isSelect = true;
                     }
-            if (event.type == Event::MouseButtonReleased)//если отпустили клавишу
-                if (event.key.code == Mouse::Left) //а именно левую
-                    isMove = false; //то не можем двигать спрайт
-            p.sprite.setColor(Color::White);//и даем ему прежний цвет
+                }
+
+
+            if (p.isSelect)//если выбрали объект
+                if (event.type == Event::MouseButtonPressed)//если нажата клавиша мыши
+                    if (event.key.code == Mouse::Right){//а именно правая
+                        p.isMove = true;//то начинаем движение
+                        p.isSelect = false;//объект уже не выбран
+                        p.sprite.setColor(Color::White);//возвращаем обычный цвет спрайту
+                        tempX = pos.x;//забираем координату нажатия курсора Х
+                        tempY = pos.y;//и Y
+
+                    }
         }
-        if (isMove) {//если можем двигать
-            p.sprite.setColor(Color::Green);//красим спрайт в зеленый
-            p.x = pos.x-dX;//двигаем спрайт по Х
-            p.y = pos.y-dY;//двигаем по Y
-            //p.sprite.setPosition(pos.x - dX, pos.y - dY);//можно и так написать,если у вас нету х и у
+
+
+        if (p.isMove){
+            distance = sqrt((tempX - p.x)*(tempX - p.x) + (tempY - p.y)*(tempY - p.y));//считаем дистанцию (расстояние от точки А до точки Б). используя формулу длины вектора
+
+            if (distance > 2){//этим условием убираем дергание во время конечной позиции спрайта
+
+                p.x += 0.1*time*(tempX - p.x) / distance;//идем по иксу с помощью вектора нормали
+                p.y += 0.1*time*(tempY - p.y) / distance;//идем по игреку так же
+            }
+            else { p.isMove = false; std::cout << "priehali\n"; }//говорим что уже никуда не идем и выводим веселое сообщение в консоль
         }
+
+
+
+
 
         ///////////////////////////////////////////Управление персонажем с анимацией////////////////////////////////////////////////////////////////////////
         if (p.life) {
@@ -263,7 +285,7 @@ int main()
         window.setView(view);
         window.clear();
 
-
+        window.getSystemHandle();
 
         for (int i = 0; i < HEIGHT_MAP; i++)
             for (int j = 0; j < WIDTH_MAP; j++)
@@ -277,14 +299,8 @@ int main()
 
                 window.draw(s_map);
             }
-
-
-
         window.draw(p.sprite);
-
-
         window.display();
     }
-
     return 0;
 }
