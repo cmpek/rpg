@@ -9,7 +9,11 @@ using namespace sf;
 
 ////////////////////////////////////////////////////КЛАСС ИГРОКА////////////////////////
 class Player {
-private: float  by = 0;
+    /* это задел на следующие уроки,прошу не обращать внимания)
+private: float w, h, dx, dy, x, y, speed;
+         int dir, playerScore, health;
+         bool life;
+         */
 public:
     float w, h, dx, dy,x,y, speed;
     int dir, playerScore, health;
@@ -18,18 +22,18 @@ public:
     Image image;
     Texture texture;
     Sprite sprite;
-    Player(String F, float X, float Y, float W, float H){
+    Player(Sprite F, float X, float Y, float W, float H){
         dir = 0; speed = 0; playerScore = 0; health = 100; dx=0;dy=0;
         life = true;
-        File = F;
+        //File = F;
         w = W; h = H;
-        image.loadFromFile("../assets/images/" + File);
+        //image.loadFromFile("images/" + File);
         image.createMaskFromColor(Color(41, 33, 59));
-        texture.loadFromImage(image);
-        sprite.setTexture(texture);
+        //texture.loadFromImage(image);
+        //sprite.setTexture(texture);
+        sprite = F;
         x = X; y = Y;
         sprite.setTextureRect(IntRect(0, 0, w, h));
-        sprite.setOrigin(w / 2, h / 2);
     }
     void update(float time)
     {
@@ -39,16 +43,30 @@ public:
             case 1: dx = -speed; dy = 0; break;
             case 2: dx = 0; dy = speed; break;
             case 3: dx = 0; dy = -speed; break;
-
         }
 
         x += dx*time;
         y += dy*time;
         speed = 0;
         sprite.setPosition(x, y);
-        interactionWithMap(time);
+        sprite.setOrigin(w / 2, h / 2);
+        interactionWithMap();
         if (health <= 0){ life = false; }
 
+    }
+
+    float getWidth(){//получить ширину объека
+        return w;
+    }
+    void setWidth(float width){//установить ширину объекта
+        w = width;
+    }
+
+    float getHeight(){//взять ширину объекта
+        return h;
+    }
+    void setHeight(float height){//задать ширину объекта
+        h = height;
     }
 
     float getplayercoordinateX(){
@@ -61,7 +79,7 @@ public:
 
 
 
-    void interactionWithMap(int time)
+    void interactionWithMap()
     {
 
         for (int i = y / 32; i < (y + h) / 32; i++)
@@ -107,11 +125,30 @@ public:
 
 };
 
+class SpriteManager{//это задел на следующие уроки,прошу не обращать внимания на эти изменения)
+public:
+    Image image;
+    Texture texture;
+    Sprite sprite;
+    String name;
+    String file;
+    int widthOfSprite;
+    int heightOfSprite;
+    SpriteManager(String File,String Name){
+        file = File;
+        name = Name;
+        image.loadFromFile("../assets/images/" + file);
+        texture.loadFromImage(image);
+        sprite.setTexture(texture);
+    }
+};
+
+
 int main()
 {
 
 
-    RenderWindow window(VideoMode(1366, 768), "Lesson 16. kychka-pc.ru");
+    RenderWindow window(VideoMode(640, 480), "Lesson 17. kychka-pc.ru");
     view.reset(FloatRect(0, 0, 640, 480));
 
     Font font;
@@ -137,24 +174,27 @@ int main()
     s_quest.setTextureRect(IntRect(0, 0, 340, 510));
     s_quest.setScale(0.6f, 0.6f);
 
-    Player p("hero.png", 250, 250, 96.0, 96.0);
+    SpriteManager playerSprite("hero.png", "Hero");//это задел на следующие уроки,прошу не обращать внимания)
 
-    bool showMissionText = true;
+    Player p(playerSprite.sprite, 250, 250, 96.0, 96.0);
 
     float currentFrame = 0;
     Clock clock;
-    Clock gameTimeClock;
-    int gameTime = 0;
-    int createObjectForMapTimer = 0;//timer for random
+    bool isMove = false;//переменная для щелчка мыши по спрайту
+    float dX = 0;//корректировка движения по х
+    float dY = 0;//по у
     while (window.isOpen())
     {
 
         float time = clock.getElapsedTime().asMicroseconds();
 
-        if (p.life) gameTime = gameTimeClock.getElapsedTime().asSeconds(); else  { view.move(0.8, 0); }
         clock.restart();
         time = time / 800;
 
+        Vector2i pixelPos = Mouse::getPosition(window);//забираем коорд курсора
+        Vector2f pos = window.mapPixelToCoords(pixelPos);//переводим их в игровые (уходим от коорд окна)
+        std::cout << pixelPos.x << "\n";//смотрим на координату Х позиции курсора в консоли (она не будет больше ширины окна)
+        std::cout << pos.x << "\n";//смотрим на Х,которая преобразовалась в мировые координаты
 
         Event event;
         while (window.pollEvent(event))
@@ -162,28 +202,25 @@ int main()
             if (event.type == sf::Event::Closed)
                 window.close();
 
-            if (event.type == Event::KeyPressed)
-                if ((event.key.code == Keyboard::Tab)) {
-
-
-                    switch (showMissionText) {
-
-                        case true: {
-                            std::ostringstream playerHealthString;
-                            playerHealthString << p.health;
-                            std::ostringstream task;
-                            task << getTextMission(getCurrentMission(p.getplayercoordinateX()));
-                            text.setString(L"Здоровье: " + playerHealthString.str() + "\n" + task.str());
-                            showMissionText = false;
-                            break;
-                        }
-                        case false: {
-                            text.setString("");
-                            showMissionText = true;
-                            break;
-                        }
+            if (event.type == Event::MouseButtonPressed)//если нажата клавиша мыши
+                if (event.key.code == Mouse::Left)//а именно левая
+                    if (p.sprite.getGlobalBounds().contains(pos.x, pos.y))//и при этом координата курсора попадает в спрайт
+                    {
+                        std::cout << "isClicked!\n";//выводим в консоль сообщение об этом
+                        dX = pos.x - p.sprite.getPosition().x;//делаем разность между позицией курсора и спрайта.для корректировки нажатия
+                        dY = pos.y - p.sprite.getPosition().y;//тоже самое по игреку
+                        isMove = true;//можем двигать спрайт
                     }
-                }
+            if (event.type == Event::MouseButtonReleased)//если отпустили клавишу
+                if (event.key.code == Mouse::Left) //а именно левую
+                    isMove = false; //то не можем двигать спрайт
+            p.sprite.setColor(Color::White);//и даем ему прежний цвет
+        }
+        if (isMove) {//если можем двигать
+            p.sprite.setColor(Color::Green);//красим спрайт в зеленый
+            p.x = pos.x-dX;//двигаем спрайт по Х
+            p.y = pos.y-dY;//двигаем по Y
+            //p.sprite.setPosition(pos.x - dX, pos.y - dY);//можно и так написать,если у вас нету х и у
         }
 
         ///////////////////////////////////////////Управление персонажем с анимацией////////////////////////////////////////////////////////////////////////
@@ -220,23 +257,8 @@ int main()
         }
 
 
-
-        sf::Vector2i localPosition = Mouse::getPosition(window);
-
-
-
-        if (localPosition.x < 3) { view.move(-0.2*time, 0); }
-        if (localPosition.x > window.getSize().x-3) { view.move(0.2*time, 0); }
-        if (localPosition.y > window.getSize().y-3) { view.move(0, 0.2*time); }
-        if (localPosition.y < 3) {  view.move(0, -0.2*time); }
-
-        createObjectForMapTimer += time;//наращиваем таймер
-        if (createObjectForMapTimer>3000){
-            randomMapGenerate();//генерация случ камней
-            createObjectForMapTimer = 0;//обнуляем таймер
-        }
-
         p.update(time);
+
 
         window.setView(view);
         window.clear();
@@ -257,11 +279,6 @@ int main()
             }
 
 
-        if (!showMissionText) {
-            text.setPosition(view.getCenter().x + 125, view.getCenter().y - 130);
-            s_quest.setPosition(view.getCenter().x + 115, view.getCenter().y - 130);
-            window.draw(s_quest); window.draw(text);
-        }
 
         window.draw(p.sprite);
 
