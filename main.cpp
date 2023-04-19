@@ -152,7 +152,7 @@ int main()
 {
 
 
-    RenderWindow window(VideoMode(640, 480), "Lesson 18. kychka-pc.ru");
+    RenderWindow window(VideoMode(640, 480), "Lesson 19. kychka-pc.ru");
     view.reset(FloatRect(0, 0, 640, 480));
 
     Font font;
@@ -243,6 +243,12 @@ int main()
 
 
 
+
+        float dX = pos.x - p.x;//вектор , колинеарный прямой, которая пересекает спрайт и курсор
+        float dY = pos.y - p.y;//он же, координата y
+        float rotation = (atan2(dY, dX)) * 180 / 3.14159265;//получаем угол в радианах и переводим его в градусы
+        std::cout << rotation << "\n";//смотрим на градусы в консольке
+        p.sprite.setRotation(rotation);//поворачиваем спрайт на эти градусы
 
 
         ///////////////////////////////////////////Управление персонажем с анимацией////////////////////////////////////////////////////////////////////////
