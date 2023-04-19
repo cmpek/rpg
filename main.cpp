@@ -3,23 +3,24 @@
 #include "view.h"//подключили код с видом камеры
 #include <iostream>
 #include <sstream>
+#include "mission.h"
 
 using namespace sf;
 
 ////////////////////////////////////////////////////КЛАСС ИГРОКА////////////////////////
 class Player {
-private: float x, y;
+private: float x, y = 0;
 public:
-    float w, h, speed,dx,dy;
-    int dir, playerScore, health;//новая переменная, хранящая жизни игрока
-    bool life;//переменная жизнь, логическая
+    float w, h, dx, dy, speed;
+    int dir, playerScore, health;
+    bool life;
     String File;
     Image image;
     Texture texture;
     Sprite sprite;
     Player(String F, float X, float Y, float W, float H){
-        dx=0;dy=0;dir = 0; speed = 0; playerScore = 0; health = 100; // инициализировали переменную жизни в конструкторе
-        life = true;//инициализировали логическую переменную жизни
+        dir = 0; speed = 0; playerScore = 0; health = 100; dx=0;dy=0;
+        life = true;
         File = F;
         w = W; h = H;
         image.loadFromFile("../assets/images/" + File);
@@ -45,7 +46,8 @@ public:
         speed = 0;
         sprite.setPosition(x, y);
         interactionWithMap();
-        if (health <= 0){ life = false; }//если жизней меньше либо равно 0, то умираем
+        if (health <= 0){ life = false; }
+
     }
 
     float getplayercoordinateX(){
@@ -85,18 +87,18 @@ public:
                 }
 
                 if (TileMap[i][j] == 's') {
-                    playerScore++;//если взяли камень, переменная playerScore=playerScore+1;
+                    playerScore++;
                     TileMap[i][j] = ' ';
                 }
 
                 if (TileMap[i][j] == 'f') {
-                    health -= 40;//если взяли ядовитейший в мире цветок,то переменная health=health-40;
-                    TileMap[i][j] = ' ';//убрали цветок
+                    health -= 40;
+                    TileMap[i][j] = ' ';
                 }
 
                 if (TileMap[i][j] == 'h') {
-                    health += 20;//если взяли сердечко,то переменная health=health+20;
-                    TileMap[i][j] = ' ';//убрали сердечко
+                    health += 20;
+                    TileMap[i][j] = ' ';
                 }
 
             }
@@ -106,14 +108,14 @@ public:
 
 int main()
 {
-    RenderWindow window(VideoMode(640, 480), "Lesson 13. kychka-pc.ru");
+    RenderWindow window(VideoMode(640, 480), "Lesson 14. kychka-pc.ru");
     view.reset(FloatRect(0, 0, 640, 480));
 
     Font font;
     font.loadFromFile("../assets/fonts/CyrilicOld.ttf");
     Text text("", font, 20);
-    text.setColor(Color::Red);
-    text.setStyle(Text::Bold);
+    text.setColor(Color::Black);
+
 
     Image map_image;
     map_image.loadFromFile("../assets/images/map.png");
@@ -122,29 +124,62 @@ int main()
     Sprite s_map;
     s_map.setTexture(map);
 
+    Image quest_image;
+    quest_image.loadFromFile("../assets/images/missionbg.jpg");
+    quest_image.createMaskFromColor(Color(0, 0, 0));
+    Texture quest_texture;
+    quest_texture.loadFromImage(quest_image);
+    Sprite s_quest;
+    s_quest.setTexture(quest_texture);
+    s_quest.setTextureRect(IntRect(0, 0, 340, 510));  //приведение типов, размеры картинки исходные
+    s_quest.setScale(0.6f, 0.6f);//чуть уменьшили картинку, => размер стал меньше
 
     Player p("hero.png", 250, 250, 96.0, 96.0);
 
+    bool showMissionText = true;//логическая переменная, отвечающая за появление текста миссии на экране
 
     float currentFrame = 0;
     Clock clock;
-    Clock gameTimeClock;//переменная игрового времени, будем здесь хранить время игры
-    int gameTime = 0;//объявили игровое время, инициализировали.
+    Clock gameTimeClock;
+    int gameTime = 0;
     while (window.isOpen())
     {
 
         float time = clock.getElapsedTime().asMicroseconds();
 
-        if (p.life) gameTime = gameTimeClock.getElapsedTime().asSeconds(); else  { view.move(0.8, 0); }//игровое время в секундах идёт вперед, пока жив игрок, перезагружать как time его не надо. оно не обновляет логику игры
+        if (p.life) gameTime = gameTimeClock.getElapsedTime().asSeconds(); else  { view.move(0.8, 0); }
         clock.restart();
         time = time / 800;
 
 
-        sf::Event event;
+        Event event;
         while (window.pollEvent(event))
         {
             if (event.type == sf::Event::Closed)
                 window.close();
+
+            if (event.type == Event::KeyPressed)//событие нажатия клавиши
+                if ((event.key.code == Keyboard::Tab)) {//если клавиша ТАБ
+
+
+                    switch (showMissionText) {//переключатель, реагирующий на логическую переменную showMissionText
+
+                        case true: {
+                            std::ostringstream playerHealthString;//строка здоровья игрока
+                            playerHealthString << p.health; //заносим в строку здоровье
+                            std::ostringstream task;//строка текста миссии
+                            task << getTextMission(getCurrentMission(p.getplayercoordinateX()));//вызывается функция getTextMission (она возвращает текст миссии), которая принимает в качестве аргумента функцию getCurrentMission(возвращающую номер миссии), а уже эта ф-ция принимает в качестве аргумента функцию p.getplayercoordinateX() (эта ф-ция возвращает Икс координату игрока)
+                            text.setString(L"Здоровье: " + playerHealthString.str() + "\n" + task.str());
+                            showMissionText = false;//эта строка позволяет убрать все что мы вывели на экране
+                            break;//выходим , чтобы не выполнить условие "false" (которое ниже)
+                        }
+                        case false: {
+                            text.setString("");//если не нажата клавиша таб, то весь этот текст пустой
+                            showMissionText = true;// а эта строка позволяет снова нажать клавишу таб и получить вывод на экран
+                            break;
+                        }
+                    }
+                }
         }
 
         ///////////////////////////////////////////Управление персонажем с анимацией////////////////////////////////////////////////////////////////////////
@@ -183,25 +218,42 @@ int main()
         window.setView(view);
         window.clear();
 
-        /////////////////////////////Рисуем карту/////////////////////
-        for (int i = 0; i < HEIGHT_MAP; i++)
-            for (int j = 0; j < WIDTH_MAP; j++)
-            {
-                if (TileMap[i][j] == ' ')  s_map.setTextureRect(IntRect(0, 0, 32, 32));
-                if (TileMap[i][j] == 's')  s_map.setTextureRect(IntRect(32, 0, 32, 32));
-                if ((TileMap[i][j] == '0')) s_map.setTextureRect(IntRect(64, 0, 32, 32));
-                if ((TileMap[i][j] == 'f')) s_map.setTextureRect(IntRect(96, 0, 32, 32));//добавили цветок
-                if ((TileMap[i][j] == 'h')) s_map.setTextureRect(IntRect(128, 0, 32, 32));//и сердечко
-                s_map.setPosition(j * 32, i * 32);
 
-                window.draw(s_map);
-            }
-        std::ostringstream playerHealthString, gameTimeString;    // объявили переменную здоровья и времени
-        playerHealthString << p.health; gameTimeString << gameTime;		//формируем строку
-        text.setString(L"Здоровье: " + playerHealthString.str() + L"\nВремя игры: " + gameTimeString.str());//задаем строку тексту и вызываем сформированную выше строку методом .str()
+        if ((getCurrentMission(p.getplayercoordinateX())) == 0) { //Если текущая миссия 0, то рисуем карту вот так
+            for (int i = 0; i < HEIGHT_MAP; i++)
+                for (int j = 0; j < WIDTH_MAP; j++)
+                {
+                    if (TileMap[i][j] == ' ')  s_map.setTextureRect(IntRect(0, 0, 32, 32));
+                    if (TileMap[i][j] == 's')  s_map.setTextureRect(IntRect(32, 0, 32, 32));
+                    if ((TileMap[i][j] == '0')) s_map.setTextureRect(IntRect(64, 0, 32, 32));
+                    if ((TileMap[i][j] == 'f')) s_map.setTextureRect(IntRect(96, 0, 32, 32));
+                    if ((TileMap[i][j] == 'h')) s_map.setTextureRect(IntRect(128, 0, 32, 32));
+                    s_map.setPosition(j * 32, i * 32);
 
-        text.setPosition(view.getCenter().x - 165, view.getCenter().y - 200);//задаем позицию текста, отступая от центра камеры
-        window.draw(text);//рисую этот текст
+                    window.draw(s_map);
+                }
+        }
+
+        if ((getCurrentMission(p.getplayercoordinateX())) >= 1) { //Если текущая миссия 1, то рисуем карту вот так
+            for (int i = 0; i < HEIGHT_MAP; i++)
+                for (int j = 0; j < WIDTH_MAP; j++)
+                {
+                    if (TileMap[i][j] == ' ')  s_map.setTextureRect(IntRect(64, 0, 32, 32));//для примера поменял местами вывод спрайта для этого символа и..
+                    if (TileMap[i][j] == 's')  s_map.setTextureRect(IntRect(32, 0, 32, 32));
+                    if ((TileMap[i][j] == '0')) s_map.setTextureRect(IntRect(0, 0, 32, 32));//и для вот этого. логически-игровой смысл их остался таким же
+                    if ((TileMap[i][j] == 'f')) s_map.setTextureRect(IntRect(96, 0, 32, 32));
+                    if ((TileMap[i][j] == 'h')) s_map.setTextureRect(IntRect(128, 0, 32, 32));
+                    s_map.setPosition(j * 32, i * 32);
+
+                    window.draw(s_map);
+                }
+        }
+
+        if (!showMissionText) {
+            text.setPosition(view.getCenter().x + 125, view.getCenter().y - 130);//позиция всего этого текстового блока
+            s_quest.setPosition(view.getCenter().x + 115, view.getCenter().y - 130);//позиция фона для блока
+            window.draw(s_quest); window.draw(text); //рисуем спрайт свитка (фон для текста миссии). а затем и текст. все это завязано на логическую переменную, которая меняет свое состояние от нажатия клавиши ТАБ
+        }
 
         window.draw(p.sprite);
         window.display();
