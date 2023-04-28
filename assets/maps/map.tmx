@@ -45,6 +45,7 @@
   <object id="37" name="player" x="44.5379" y="326.485" width="32" height="32"/>
  </objectgroup>
  <objectgroup id="10" name="enemies">
-  <object id="51" name="easyEnemy" x="173" y="400" width="168" height="64"/>
+  <object id="51" name="easyEnemy" x="176" y="64" width="168" height="64"/>
+  <object id="68" name="easyEnemy" x="183" y="395" width="168" height="64"/>
  </objectgroup>
 </map>

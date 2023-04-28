@@ -5,6 +5,7 @@
 #include "iostream"
 #include "level.h"
 #include <vector>
+#include <list>
 
 using namespace sf;
 
@@ -41,6 +42,8 @@ public:
     FloatRect getRect() {
         return FloatRect(x, y, w, h);
     }
+
+    virtual void update(float time) = 0;
 };
 
 ////////////////////////////////////////////////////КЛАСС ИГРОКА////////////////////////
@@ -184,7 +187,7 @@ public:
 };
 
 int main() {
-    RenderWindow window(VideoMode(640, 480), "Lesson 22. kychka-pc.ru");
+    RenderWindow window(VideoMode(640, 480), "Lesson 23. kychka-pc.ru");
     view.reset(FloatRect(0, 0, 640, 480));
 
     TileMap lvl;
@@ -197,11 +200,16 @@ int main() {
     easyEnemyImage.loadFromFile("../assets/images/easyEnemy.png");
     easyEnemyImage.createMaskFromColor(Color(255, 0, 0));
 
-    Object player = lvl.getObject("player");
-    Object easyEnemyObject = lvl.getObject("easyEnemy");
+    std::list<Entity *> entities;//создаю список, сюда буду кидать объекты.например врагов.
+    std::list<Entity *>::iterator it;   //итератор чтобы проходить по эл-там списка
 
+    std::vector<Object> e = lvl.getObjectsByName("easyEnemy");//все объекты врага на tmx карте хранятся в этом векторе
+    for (int i = 0; i < e.size(); i++) {//проходимся по элементам этого вектора(а именно по врагам)
+        entities.push_back(new Enemy(easyEnemyImage, "EasyEnemy", lvl, e[i].rect.left, e[i].rect.top, 132, 64)); //и закидываем в список всех наших врагов с карты
+    }
+
+    Object player = lvl.getObject("player");
     Player p(heroImage, "Player1", lvl, player.rect.left, player.rect.top, 40, 30);//объект класса игрока
-    Enemy easyEnemy(easyEnemyImage, "EasyEnemy", lvl, easyEnemyObject.rect.left, easyEnemyObject.rect.top, 132, 64);//простой враг, объект класса врага
 
     Clock clock;
     while (window.isOpen()) {
@@ -218,12 +226,17 @@ int main() {
             }
         }
         p.update(time);
-        easyEnemy.update(time);
+        for (auto entity: entities) { //для всех элементов списка(пока это только враги,но могут быть и пули к примеру) активируем ф-цию update
+            entity->update(time);
+        }
         window.setView(view);
         window.clear(Color(77, 83, 140));
         window.draw(lvl);
 
-        window.draw(easyEnemy.sprite);
+
+        for (auto entity: entities) {
+            window.draw(entity->sprite); //рисуем entities объекты (сейчас это только враги)
+        }
         window.draw(p.sprite);
         window.display();
     }

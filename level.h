@@ -64,15 +64,12 @@ bool TileMap::load(const std::string &tmx_file_path) {
     // получаем путь до файла
     auto image = tileset->FirstChildElement("image");
     std::string path = image->Attribute("source");
-    std::cout << " = " << path << " = \n";
     ///////// @todo: while (!isalpha(path.front())) // ≈сли путь редактор записал, например, так : "../textures/Tiles.png"
     ///////// @todo:    path.erase(0, 1);          // то убираем все лишние символы в начале строки ( ../ ), чтобы избежать сбоя загрузки
     texture = new sf::Texture();
     if (!texture->loadFromFile(path)) {
         std::cout << " A S S ";
         return false;
-    } else {
-        std::cout << "JOPA 123";
     }
 
 
