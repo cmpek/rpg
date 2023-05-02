@@ -129,10 +129,16 @@ public:
         y += dy * time;
         checkCollisionWithMap(0, dy);
         sprite.setPosition(x + w / 2, y + h / 2);
-        if (health <= 0) { life = false; }
-        if (!isMove) { speed = 0; }
+        if (health <= 0) {
+            life = false;
+        }
+        if (!isMove) {
+            speed = 0;
+        }
         setPlayerCoordinateForView(x, y);
-        if (life) { setPlayerCoordinateForView(x, y); }
+        if (life) {
+            setPlayerCoordinateForView(x, y);
+        }
         dy = dy + 0.0015 * time;
     }
 };
@@ -181,7 +187,9 @@ public:
             checkCollisionWithMap(dx, 0);
             x += dx * time;
             sprite.setPosition(x + w / 2, y + h / 2);
-            if (health <= 0) { life = false; }
+            if (health <= 0) {
+                life = false;
+            }
         }
     }
 };
@@ -228,17 +236,41 @@ int main() {
         p.update(time);
         for (auto entity: entities) { //для всех элементов списка(пока это только враги,но могут быть и пули к примеру) активируем ф-цию update
             entity->update(time);
+            if (!entity->life) {    // если этот объект мертв, то удаляем его
+                continue;
+            }
+            if (entity->getRect().intersects(p.getRect())) { //если прямоугольник спрайта объекта пересекается с игроком
+                if (entity->name == "EasyEnemy") {   //и при этом имя объекта EasyEnemy,то..
+                    if (p.dy > 0 && !p.onGround) { //если прыгнули на врага,то даем врагу скорость 0,отпрыгиваем от него чуть вверх,даем ему здоровье 0
+                        entity->dx = 0;
+                        p.dy = -0.2;
+                        entity->health = 0;
+                    } else {
+                        p.health -= 5;    //иначе враг подошел к нам сбоку и нанес урон
+                    }
+                }
+            }
         }
         window.setView(view);
         window.clear(Color(77, 83, 140));
         window.draw(lvl);
 
-
         for (auto entity: entities) {
-            window.draw(entity->sprite); //рисуем entities объекты (сейчас это только враги)
+            if (entity->life) {
+                window.draw(entity->sprite); //рисуем entities объекты (сейчас это только враги)
+            }
         }
         window.draw(p.sprite);
         window.display();
+        for (it = entities.begin(); it != entities.end(); it++) //говорим что проходимся от начала до конца
+        {
+            Entity *enemy = *it;
+            if (!enemy->life) {
+                it = entities.erase(it);
+                entities.push_back(new Enemy(easyEnemyImage, "EasyEnemy", lvl, enemy->x + 200, enemy->y, 132, 64));
+                delete enemy;
+            }
+        }
     }
     return 0;
 }
