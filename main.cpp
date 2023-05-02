@@ -228,8 +228,8 @@ public:
 class MovingPlatform : public Entity {
 public:
     MovingPlatform(Image &image, String Name, TileMap &lvl, float X, float Y, int W, int H) : Entity(image, Name, X, Y, W, H) {
-        sprite.setTextureRect(IntRect(0, 0, 64, 22));
-        dx = 0.1;
+        sprite.setTextureRect(IntRect(0, 0, W, H));
+        dx = 0.08;
     }
 
     void update(float time) {
@@ -278,7 +278,10 @@ int main() {
     Object player = lvl.getObject("player");
     Player p(heroImage, "Player1", lvl, player.rect.left, player.rect.top, 40, 30);//объект класса игрока
 
-    entities.push_back(new MovingPlatform(movePlatformImage, "MovingPlatform", lvl, 120, 340, 64, 22));
+    e = lvl.getObjectsByName("MovingPlatform");//забираем все платформы в вектор
+    for (int i = 0; i < e.size(); i++) {//закидываем платформу в список.передаем изображение имя уровень координаты появления (взяли из tmx карты), а так же размеры
+        entities.push_back(new MovingPlatform(movePlatformImage, "MovingPlatform", lvl, e[i].rect.left, e[i].rect.top, 64, 22));
+    }
 
     Clock clock;
     float dialogAppTimer = 0;
@@ -298,7 +301,19 @@ int main() {
         p.update(time);
         for (auto entity: entities) { //для всех элементов списка(пока это только враги,но могут быть и пули к примеру) активируем ф-цию update
 
-            if (entity->name == "EasyEnemy"){
+            if ((entity->name == "MovingPlatform") && (entity->getRect().intersects(p.getRect())))//если игрок столкнулся с объектом списка и имя этого объекта movingplatform
+            {
+                if (p.dy > 0 || p.onGround == false) {//при этом игрок находится в состоянии после прыжка, т.е падает вниз
+                    if (p.y + p.h < entity->y + entity->h) {//если игрок находится выше платформы, т.е это его ноги минимум (тк мы уже проверяли что он столкнулся с платформой)
+                        p.y = entity->y - p.h + 3;
+                        p.x += entity->dx * time;
+                        p.dy = 0;
+                        p.onGround = true; // то выталкиваем игрока так, чтобы он как бы стоял на платформе
+                    }
+                }
+            }
+
+            if (entity->name == "EasyEnemy") {
                 /// враг видит игрока
                 float epWidth = entity->x - p.x;
                 float peWidth = p.x - entity->x;
