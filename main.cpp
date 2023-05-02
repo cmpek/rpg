@@ -54,6 +54,7 @@ public:
         left, right, up, down, jump, stay
     } state;
     int playerScore;
+    bool isShoot;
 
     Player(Image &image, String Name, TileMap &lev, float X, float Y, int W, int H) : Entity(image, Name, X, Y, W, H) {
         playerScore = 0;
@@ -83,6 +84,10 @@ public:
 
             if (Keyboard::isKeyPressed(Keyboard::Down)) {
                 state = down;
+            }
+
+            if (Keyboard::isKeyPressed(Keyboard::Space)) {
+                isShoot = true;
             }
         }
     }
@@ -243,6 +248,71 @@ public:
     }
 };
 
+class Bullet : public Entity {//класс пули
+public:
+    int direction;//направление пули
+
+    //всё так же, только взяли в конце состояние игрока (int dir)
+    Bullet(Image &image, String Name, TileMap &lvl, float X, float Y, int W, int H, int dir) : Entity(image, Name, X, Y, W, H) {
+        obj = lvl.getObjectsByName("solid");    //инициализируем .получаем нужные объекты для взаимодействия пули с картой
+        x = X;
+        y = Y;
+        direction = dir;
+        speed = 0.8;
+        w = h = 16;
+        life = true;
+        //выше инициализация в конструкторе
+    }
+
+
+    void update(float time) {
+        switch (direction) {
+            case 0: //интовое значение state = left
+                dx = -speed;
+                dy = 0;
+                break;
+            case 1: //интовое значение state = right
+                dx = speed;
+                dy = 0;
+                break;
+            case 2: //интовое значение state = up
+                dx = 0;
+                dy = -speed;
+                break;
+            case 3: //интовое значение не имеющее отношения к направлению, пока просто стрельнем вверх, нам сейчас это не важно
+                dx = 0;
+                dy = -speed;
+                break;
+            case 4: //интовое значение не имеющее отношения к направлению, пока просто стрельнем вверх, нам сейчас это не важно
+                dx = 0;
+                dy = -speed;
+                break;
+            case 5: //интовое значение не имеющее отношения к направлению, пока просто стрельнем вверх, нам сейчас это не важно
+                dx = 0;
+                dy = -speed;
+                break;
+        }
+
+        x += dx * time;//само движение пули по х
+        y += dy * time;//по у
+
+        if (x <= 0) { // задержка пули в левой стене, чтобы при проседании кадров она случайно не вылетела за предел карты и не было ошибки
+            x = 1;
+        }
+        if (y <= 0) {
+            y = 1;
+        }
+
+        for (int i = 0; i < obj.size(); i++) {//проход по объектам solid
+            if (getRect().intersects(obj[i].rect)) {//если этот объект столкнулся с пулей,
+                life = false;// то пуля умирает
+            }
+        }
+
+        sprite.setPosition(x + w / 2, y + h / 2);//задается позицию пуле
+    }
+};
+
 int main() {
     srand(time(NULL));
     RenderWindow window(VideoMode(640, 480), "Lesson 23. kychka-pc.ru");
@@ -265,6 +335,10 @@ int main() {
 
     Image movePlatformImage;
     movePlatformImage.loadFromFile("../assets/images/platform.png");
+
+    Image BulletImage;//изображение для пули
+    BulletImage.loadFromFile("../assets/images/bullet.png");//загрузили картинку в объект изображения
+    BulletImage.createMaskFromColor(Color(0, 0, 0));//маска для пули по черному цвету
 
     std::list<Entity *> entities;//создаю список, сюда буду кидать объекты.например врагов.
     std::list<Entity *>::iterator it;   //итератор чтобы проходить по эл-там списка
@@ -297,12 +371,30 @@ int main() {
             if (event.type == sf::Event::Closed) {
                 window.close();
             }
+            //если выстрелили, то появляется пуля. enum передаем как int
+            if (p.isShoot) {
+                p.isShoot = false;
+                entities.push_back(new Bullet(BulletImage, "Bullet", lvl, p.x, p.y, 16, 16, p.state));
+            }
+
+            if (event.type == sf::Event::KeyPressed) {
+                if (event.key.code == sf::Keyboard::P) {
+                    entities.push_back(new Bullet(BulletImage, "Bullet", lvl, p.x, p.y, 16, 16, p.state));
+                }
+            }
         }
-        p.update(time);
+        for (it = entities.begin(); it != entities.end(); it++) //говорим что проходимся от начала до конца
+        {
+            Entity *entity = *it;
+            entity->update(time);
+            if (!entity->life) {
+                it = entities.erase(it);
+                delete entity;
+            }
+        }
         for (auto entity: entities) { //для всех элементов списка(пока это только враги,но могут быть и пули к примеру) активируем ф-цию update
 
-            if ((entity->name == "MovingPlatform") && (entity->getRect().intersects(p.getRect())))//если игрок столкнулся с объектом списка и имя этого объекта movingplatform
-            {
+            if ((entity->name == "MovingPlatform") && (entity->getRect().intersects(p.getRect()))) { //если игрок столкнулся с объектом списка и имя этого объекта movingplatform
                 if (p.dy > 0 || p.onGround == false) {//при этом игрок находится в состоянии после прыжка, т.е падает вниз
                     if (p.y + p.h < entity->y + entity->h) {//если игрок находится выше платформы, т.е это его ноги минимум (тк мы уже проверяли что он столкнулся с платформой)
                         p.y = entity->y - p.h + 3;
@@ -335,32 +427,12 @@ int main() {
                         dialogAppTimer = 0; //обнуляем таймер
                     }
                 }
-            }
-
-
-            entity->update(time);
-            if (!entity->life) {    // если этот объект мертв, то удаляем его
-                continue;
-            }
-            if (entity->getRect().intersects(p.getRect())) { //если прямоугольник спрайта объекта пересекается с игроком
-                if (entity->name == "EasyEnemy") {   //и при этом имя объекта EasyEnemy,то..
-                    /*if (p.dy > 0 && !p.onGround) { //если прыгнули на врага,то даем врагу скорость 0,отпрыгиваем от него чуть вверх,даем ему здоровье 0
-                        entity->dx = 0;
-                        p.dy = -0.2;
-                        entity->health = 0;
-                    } else {
-                        p.health -= 5;    //иначе враг подошел к нам сбоку и нанес урон
-                    }*/
+                //если прямоугольник спрайта объекта пересекается с игроком
+                if (entity->getRect().intersects(p.getRect())) {
                     if (entity->dx > 0)//если враг идет вправо
                     {
-                        std::cout << "(*it)->x " << entity->x << "\n";//коорд игрока
-                        std::cout << "p.x " << p.x << "\n\n";//коорд врага
-
                         entity->x = p.x - (float) entity->w; //отталкиваем его от игрока влево (впритык)
                         entity->dx = 0;//останавливаем
-
-                        std::cout << "new (*it)->x " << entity->x << "\n";//новая коорд врага
-                        std::cout << "new p.x " << p.x << "\n\n";//новая коорд игрока (останется прежней)
                     }
                     if (entity->dx < 0)//если враг идет влево
                     {
@@ -378,11 +450,13 @@ int main() {
                     }
                 }
             }
+            if (!entity->life) {    // если этот объект мертв, то удаляем его
+                continue;
+            }
             for (it2 = entities.begin(); it2 != entities.end(); it2++) {
                 if (entity->getRect() != (*it2)->getRect()) {//при этом это должны быть разные прямоугольники
-                    if ((entity->getRect().intersects((*it2)->getRect())) && (entity->name == "EasyEnemy") &&
-                        ((*it2)->name == "EasyEnemy"))//если столкнулись два объекта и они враги
-                    {
+                    //если столкнулись два объекта и они враги
+                    if (entity->getRect().intersects((*it2)->getRect()) && entity->name == "EasyEnemy" && (*it2)->name == "EasyEnemy") {
                         entity->dx *= -1;//меняем направление движения врага
                         entity->sprite.scale(-1, 1);//отражаем спрайт по горизонтали
                     }
@@ -390,6 +464,8 @@ int main() {
             }
 
         }
+
+        p.update(time);
         window.setView(view);
         window.clear(Color(77, 83, 140));
         window.draw(lvl);
@@ -404,15 +480,6 @@ int main() {
         }
         window.draw(p.sprite);
         window.display();
-        for (it = entities.begin(); it != entities.end(); it++) //говорим что проходимся от начала до конца
-        {
-            Entity *enemy = *it;
-            if (!enemy->life) {
-                it = entities.erase(it);
-                entities.push_back(new Enemy(easyEnemyImage, "EasyEnemy", lvl, enemy->x + 200, enemy->y, 132, 64));
-                delete enemy;
-            }
-        }
     }
     return 0;
 }
