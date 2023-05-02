@@ -1,4 +1,5 @@
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
 #include "view.h"
 #include <iostream>
 #include "mission.h"
@@ -340,6 +341,14 @@ int main() {
     BulletImage.loadFromFile("../assets/images/bullet.png");//загрузили картинку в объект изображения
     BulletImage.createMaskFromColor(Color(0, 0, 0));//маска для пули по черному цвету
 
+    SoundBuffer shootBuffer;//создаём буфер для звука
+    shootBuffer.loadFromFile("../assets/sounds/shoot.ogg");//загружаем в него звук
+    Sound shoot(shootBuffer);//создаем звук и загружаем в него звук из буфера
+
+    Music music;//создаем объект музыки
+    music.openFromFile("../assets/sounds/music.ogg");//загружаем файл
+    music.play();//воспроизводим музыку
+
     std::list<Entity *> entities;//создаю список, сюда буду кидать объекты.например врагов.
     std::list<Entity *>::iterator it;   //итератор чтобы проходить по эл-там списка
     std::list<Entity *>::iterator it2;//второй итератор.для взаимодействия между объектами списка
@@ -375,11 +384,13 @@ int main() {
             if (p.isShoot) {
                 p.isShoot = false;
                 entities.push_back(new Bullet(BulletImage, "Bullet", lvl, p.x, p.y, 16, 16, p.state));
+                shoot.play();//играем звук пули
             }
 
             if (event.type == sf::Event::KeyPressed) {
                 if (event.key.code == sf::Keyboard::P) {
                     entities.push_back(new Bullet(BulletImage, "Bullet", lvl, p.x, p.y, 16, 16, p.state));
+                    shoot.play();//играем звук пули
                 }
             }
         }
