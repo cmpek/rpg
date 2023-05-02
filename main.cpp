@@ -101,8 +101,12 @@ public:
                         y = obj[i].rect.top + obj[i].rect.height;
                         dy = 0;
                     }
-                    if (Dx > 0) { x = obj[i].rect.left - w; }
-                    if (Dx < 0) { x = obj[i].rect.left + obj[i].rect.width; }
+                    if (Dx > 0) {
+                        x = obj[i].rect.left - w;
+                    }
+                    if (Dx < 0) {
+                        x = obj[i].rect.left + obj[i].rect.width;
+                    }
                 }
             }
         }
@@ -148,6 +152,7 @@ public:
 class Enemy : public Entity {
 public:
     float timerReversal = 0;
+
     Enemy(Image &image, String Name, TileMap &lvl, float X, float Y, int W, int H) : Entity(image, Name, X, Y, W, H) {
         obj = lvl.getObjectsByName("solid");
         if (name == "EasyEnemy") {
@@ -181,12 +186,13 @@ public:
             }
         }
     }
-    void reversal(){
+
+    void reversal() {
         sprite.scale(-1, 1);
         dx *= -1;
     }
 
-    void randomRevers(float time){
+    void randomRevers(float time) {
         timerReversal += time;
         if (timerReversal > 3200) {
             if (rand() % 2 == 0) {
@@ -219,6 +225,24 @@ public:
     }
 };
 
+class MovingPlatform : public Entity {
+public:
+    MovingPlatform(Image &image, String Name, TileMap &lvl, float X, float Y, int W, int H) : Entity(image, Name, X, Y, W, H) {
+        sprite.setTextureRect(IntRect(0, 0, 64, 22));
+        dx = 0.1;
+    }
+
+    void update(float time) {
+        x += dx * time;
+        moveTimer += time;
+        if (moveTimer > 2000) {
+            dx *= -1;
+            moveTimer = 0;
+        }
+        sprite.setPosition(x + w / 2, y + h / 2);
+    }
+};
+
 int main() {
     srand(time(NULL));
     RenderWindow window(VideoMode(640, 480), "Lesson 23. kychka-pc.ru");
@@ -239,8 +263,12 @@ int main() {
     easyEnemyImage.loadFromFile("../assets/images/easyEnemy.png");
     easyEnemyImage.createMaskFromColor(Color(255, 0, 0));
 
+    Image movePlatformImage;
+    movePlatformImage.loadFromFile("../assets/images/platform.png");
+
     std::list<Entity *> entities;//создаю список, сюда буду кидать объекты.например врагов.
     std::list<Entity *>::iterator it;   //итератор чтобы проходить по эл-там списка
+    std::list<Entity *>::iterator it2;//второй итератор.для взаимодействия между объектами списка
 
     std::vector<Object> e = lvl.getObjectsByName("easyEnemy");//все объекты врага на tmx карте хранятся в этом векторе
     for (int i = 0; i < e.size(); i++) {//проходимся по элементам этого вектора(а именно по врагам)
@@ -249,6 +277,8 @@ int main() {
 
     Object player = lvl.getObject("player");
     Player p(heroImage, "Player1", lvl, player.rect.left, player.rect.top, 40, 30);//объект класса игрока
+
+    entities.push_back(new MovingPlatform(movePlatformImage, "MovingPlatform", lvl, 120, 340, 64, 22));
 
     Clock clock;
     float dialogAppTimer = 0;
@@ -267,26 +297,31 @@ int main() {
         }
         p.update(time);
         for (auto entity: entities) { //для всех элементов списка(пока это только враги,но могут быть и пули к примеру) активируем ф-цию update
-            /// враг видит игрока
-            float epWidth = entity->x - p.x;
-            float peWidth = p.x - entity->x;
-            float epHeight = abs((entity->y + entity->h) - (p.y + p.h));
-            std::cout << entity->y << " " << entity->h << " " << p.y << " " << p.h << "\n";
-            if (epHeight < 10 && ((epWidth < 150 && epWidth > 0) || (peWidth < 150 && peWidth > 0))) { //и если игрок находится ниже врага и находится на расстояние 400 слева от него, то...
-                entity->showDialogText = true;
-                entity->showPlayer = true;
-            }
 
-            if (entity->showDialogText) //
-            {
-                text.setString(L"ААААААH!!!");
-                text.setPosition(entity->x + 55, entity->y - 63); //задаём позицию текста относительно коорд. конкретного врага (так чтобы помещался в облачко)
-                dialogAppTimer += time; //активируем таймер
-                if (dialogAppTimer > 2000) { //если таймер дошёл до 2-х секунд, то...
-                    entity->showDialogText = false; // шоуДиалогТект приравниваем к фолс
-                    dialogAppTimer = 0; //обнуляем таймер
+            if (entity->name == "EasyEnemy"){
+                /// враг видит игрока
+                float epWidth = entity->x - p.x;
+                float peWidth = p.x - entity->x;
+                float epHeight = abs((entity->y + entity->h) - (p.y + p.h));
+
+                if (epHeight < 10 &&
+                    ((epWidth < 150 && epWidth > 0) || (peWidth < 150 && peWidth > 0))) { //и если игрок находится ниже врага и находится на расстояние 400 слева от него, то...
+                    entity->showDialogText = true;
+                    entity->showPlayer = true;
+                }
+
+                if (entity->showDialogText) //
+                {
+                    text.setString(L"ААААААH!!!");
+                    text.setPosition(entity->x + 55, entity->y - 63); //задаём позицию текста относительно коорд. конкретного врага (так чтобы помещался в облачко)
+                    dialogAppTimer += time; //активируем таймер
+                    if (dialogAppTimer > 2000) { //если таймер дошёл до 2-х секунд, то...
+                        entity->showDialogText = false; // шоуДиалогТект приравниваем к фолс
+                        dialogAppTimer = 0; //обнуляем таймер
+                    }
                 }
             }
+
 
             entity->update(time);
             if (!entity->life) {    // если этот объект мертв, то удаляем его
@@ -306,7 +341,7 @@ int main() {
                         std::cout << "(*it)->x " << entity->x << "\n";//коорд игрока
                         std::cout << "p.x " << p.x << "\n\n";//коорд врага
 
-                        entity->x = p.x - (float)entity->w; //отталкиваем его от игрока влево (впритык)
+                        entity->x = p.x - (float) entity->w; //отталкиваем его от игрока влево (впритык)
                         entity->dx = 0;//останавливаем
 
                         std::cout << "new (*it)->x " << entity->x << "\n";//новая коорд врага
@@ -321,10 +356,20 @@ int main() {
 
                     ///////выталкивание игрока
                     if (p.dx < 0) { //если столкнулись с врагом и игрок идет влево то выталкиваем игрока
-                        p.x = entity->x + (float)entity->w;
+                        p.x = entity->x + (float) entity->w;
                     }
                     if (p.dx > 0) { //если столкнулись с врагом и игрок идет вправо то выталкиваем игрока
-                        p.x = entity->x - (float)p.w;
+                        p.x = entity->x - (float) p.w;
+                    }
+                }
+            }
+            for (it2 = entities.begin(); it2 != entities.end(); it2++) {
+                if (entity->getRect() != (*it2)->getRect()) {//при этом это должны быть разные прямоугольники
+                    if ((entity->getRect().intersects((*it2)->getRect())) && (entity->name == "EasyEnemy") &&
+                        ((*it2)->name == "EasyEnemy"))//если столкнулись два объекта и они враги
+                    {
+                        entity->dx *= -1;//меняем направление движения врага
+                        entity->sprite.scale(-1, 1);//отражаем спрайт по горизонтали
                     }
                 }
             }
