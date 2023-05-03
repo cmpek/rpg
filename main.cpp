@@ -5,6 +5,7 @@
 #include "mission.h"
 #include "iostream"
 #include "level.h"
+#include "life.h"
 #include <vector>
 #include <list>
 #include <random>
@@ -349,6 +350,8 @@ int main() {
     music.openFromFile("../assets/sounds/music.ogg");//загружаем файл
     music.play();//воспроизводим музыку
 
+    LifeBar lifeBarPlayer;//экземпляр класса полоски здоровья
+
     std::list<Entity *> entities;//создаю список, сюда буду кидать объекты.например врагов.
     std::list<Entity *>::iterator it;   //итератор чтобы проходить по эл-там списка
     std::list<Entity *>::iterator it2;//второй итератор.для взаимодействия между объектами списка
@@ -489,6 +492,8 @@ int main() {
                 }
             }
         }
+        lifeBarPlayer.update(p.health);
+        lifeBarPlayer.draw(window);//рисуем полоску здоровья
         window.draw(p.sprite);
         window.display();
     }
