@@ -51,7 +51,6 @@ TileMap::~TileMap() {
 bool TileMap::load(const std::string &tmx_file_path) {
     tinyxml2::XMLDocument document;
     if (document.LoadFile(tmx_file_path.c_str()) != tinyxml2::XML_SUCCESS) {
-        std::cout << "Loading file " << tmx_file_path << " failed..." << std::endl;
         return false;
     }
     // получаем все данные тайлсета
@@ -68,7 +67,6 @@ bool TileMap::load(const std::string &tmx_file_path) {
     ///////// @todo:    path.erase(0, 1);          // то убираем все лишние символы в начале строки ( ../ ), чтобы избежать сбоя загрузки
     texture = new sf::Texture();
     if (!texture->loadFromFile(path)) {
-        std::cout << " A S S ";
         return false;
     }
 
