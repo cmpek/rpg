@@ -11,9 +11,24 @@
 #include <list>
 #include <random>
 
-bool startGame() {
+void changeLevel(TileMap &lvl, int &numberLevel) {
+    std::string levelMap = "../assets/maps/map.tmx";
+    switch (numberLevel) {
+        case 1:
+            levelMap = "../assets/maps/map.tmx";
+            break;
+        case 2:
+            levelMap = "../assets/maps/map2.tmx";
+            break;
+        case 3:
+            levelMap = "../assets/maps/map3.tmx";
+            break;
+    }
+    lvl.load(levelMap);
+}
+
+bool startGame(RenderWindow &window, int &numberLevel) {
     srand(time(NULL));
-    RenderWindow window(VideoMode(640, 480), "Lesson 23. kychka-pc.ru");
     menu(window);
     view.reset(FloatRect(0, 0, 640, 480));
 
@@ -23,7 +38,7 @@ bool startGame() {
     text.setFillColor(Color::White);
 
     TileMap lvl;
-    lvl.load("../assets/maps/map.tmx");
+    changeLevel(lvl, numberLevel);
 
     Image heroImage;
     heroImage.loadFromFile("../assets/images/player.gif");
@@ -43,9 +58,9 @@ bool startGame() {
     shootBuffer.loadFromFile("../assets/sounds/shoot.ogg");//загружаем в него звук
     Sound shoot(shootBuffer);//создаем звук и загружаем в него звук из буфера
 
-    Music music;//создаем объект музыки
-    music.openFromFile("../assets/sounds/music.ogg");//загружаем файл
-    music.play();//воспроизводим музыку
+    //Music music;//создаем объект музыки
+    //music.openFromFile("../assets/sounds/music.ogg");//загружаем файл
+    //music.play();//воспроизводим музыку
 
     LifeBar lifeBarPlayer;//экземпляр класса полоски здоровья
 
@@ -69,13 +84,6 @@ bool startGame() {
     Clock clock;
     float dialogAppTimer = 0;
     while (window.isOpen()) {
-        if (Keyboard::isKeyPressed(Keyboard::Tab)) { //если таб, то перезагружаем игру
-            return true;
-        }
-        if (Keyboard::isKeyPressed(Keyboard::Escape)) { //если эскейп, то выходим из игры
-            return false;
-        }
-
         float time = clock.getElapsedTime().asMicroseconds();
 
         clock.restart();
@@ -182,6 +190,17 @@ bool startGame() {
 
         }
 
+        if (Keyboard::isKeyPressed(Keyboard::T)) { // если T, переходим на следующий уровень и перезапускаем
+            numberLevel++;
+            return true;
+        }
+        if (Keyboard::isKeyPressed(Keyboard::Tab)) { //если таб, то перезагружаем игру
+            return true;
+        }
+        if (Keyboard::isKeyPressed(Keyboard::Escape)) { //если эскейп, то выходим из игры
+            return false;
+        }
+
         p.update(time);
         window.setView(view);
         window.clear(Color(77, 83, 140));
@@ -203,8 +222,8 @@ bool startGame() {
     return false;
 }
 
-void gameRunning() {//ф-ция перезагружает игру , если это необходимо
-    if (startGame()) { ////если startGame() == true, то вызываем занова ф-цию isGameRunning, которая в свою очередь опять вызывает startGame()
-        gameRunning();
+void gameRunning(RenderWindow &window, int &numberLevel) {//ф-ция перезагружает игру , если это необходимо
+    if (startGame(window, numberLevel)) { ////если startGame() == true, то вызываем занова ф-цию isGameRunning, которая в свою очередь опять вызывает startGame()
+        gameRunning(window, numberLevel);
     }
 }
